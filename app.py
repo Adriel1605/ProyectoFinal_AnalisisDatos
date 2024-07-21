@@ -1,15 +1,18 @@
-from dash import Dash, html, dcc, Output, Input
-import pandas as pd
+from dash import Dash, html, dcc, Output, Input  # pip install dash
+import pandas as pd  # pip install pandas
 import random
 import plotly.express as px
-from ucimlrepo import fetch_ucirepo
+from ucimlrepo import fetch_ucirepo  # pip install ucimlrepo
 
-# Carga de datos con solo las columnas necesarias y optimización de tipos de datos
+
+# Carga de datos
 drug_reviews_drugs_com = fetch_ucirepo(id=462)
-data = drug_reviews_drugs_com.data.features[['condition', 'date', 'drugName', 'rating', 'usefulCount']]
+data = drug_reviews_drugs_com.data.features
+# Filtrado de datos
 categorias = ['Depression', 'Pain', 'Anxiety', 'Insomnia', 'High Blood Pressure', 'Migraine']
 data = data[data['condition'].isin(categorias)].copy()
 data['date'] = pd.to_datetime(data['date'], format='%d-%b-%y')
+
 
 # Función para borrar datos por porcentaje - Laboratorio: Datos Faltantes
 def drop_values(data, percent):
@@ -22,6 +25,7 @@ def drop_values(data, percent):
         column_copy.iloc[indices[:num_values_to_drop]] = None
         data_copy[column] = column_copy
     return data_copy
+
 
 def crear_app():
     app = Dash()
@@ -74,19 +78,19 @@ def crear_app():
     )
 
     @app.callback(
-        [Output('grafica1', 'figure'),
-         Output('grafica2', 'figure'),
-         Output('grafica3', 'figure')],
-        [Input('controlador1', 'value')]
+        Output('grafica1', 'figure'),
+        Output('grafica2', 'figure'),
+        Output('grafica3', 'figure'),
+        Input('controlador1', 'value')
     )
     def update_output(value):
         rango_fecha = range(value[0], value[1] + 1)
         df = data[data['date'].dt.year.isin(rango_fecha)]
-
+        
         conteo_nombres = df['condition'].value_counts()
         df_1 = pd.DataFrame({'condition': conteo_nombres.index, 'value': conteo_nombres.values})
         figure1 = px.pie(df_1, values='value', names='condition', template='plotly_dark', title='Data Disponible por categoría')
-
+        
         df_2 = df.groupby('condition')['drugName'].value_counts().groupby(level=0).nlargest(3).reset_index(level=0, drop=True)
         control = {'condition': [], 'drugName': [], 'count': []}
         top_drogas = []
@@ -106,11 +110,11 @@ def crear_app():
         return figure1, figure2, figure3
 
     @app.callback(
-        [Output('grafica4', 'figure'),
-         Output('porcentaje', 'children')],
-        [Input('controlador2', 'value')]
+        Output('grafica4', 'figure'),
+        Output('porcentaje', 'children'),
+        Input('controlador2', 'value')
     )
-    def update_output2(value):
+    def update_output(value):
         df_4 = data.groupby('rating')['usefulCount'].mean().reset_index()
         df_4.columns = ['rating', 'usefulCount']
         val = int(value) / 100 if value is not None else 1
@@ -132,4 +136,3 @@ def crear_app():
 if __name__ == '__main__':
     app = crear_app()
     app.run_server(debug=True)
-
