@@ -1,4 +1,6 @@
-from dash import Dash, html, dcc,Output, Input #pip install dash
+import dash
+from dash import dcc, html
+from dash.dependencies import Input, Output
 import pandas as pd #pip install pandas
 import random
 import plotly.express as px
@@ -10,7 +12,7 @@ data = drug_reviews_drugs_com.data.features
 #Filtrado de datos
 categorias = ['Depression','Pain','Anxiety','Insomnia','High Blood Pressure', 'Migraine']
 data = data[data['condition'].isin(categorias)].copy()
-data['date'] = pd.to_datetime(data['date'], format='%d-%b-%y') 
+data['date'] = pd.to_datetime(data['date'], format='%d-%b-%y')
 
 #Funcion para borrar datos por porcentaje - Laboratorio: Datos Faltantes
 def drop_values(data, percent):
@@ -38,7 +40,7 @@ def drop_values(data, percent):
 
     return data_copy
 
-app = Dash()
+app = dash.Dash(__name__)
 server = app.server
  # Definición del layout de la aplicación
 app.layout = html.Div(
@@ -52,7 +54,7 @@ app.layout = html.Div(
                style={'font-family':'Courier New',
                        'color':'white', 'font-size':'20px',
                        'text-align':'center', 'padding':'0px 0px 1px'}),
-        html.H2(children='Rango de selección de data', 
+        html.H2(children='Rango de selección de data',
                 style={'color':'white', 'font-size':'25px', 'text-align':'center'}),
         #Primer controlador
         dcc.RangeSlider(
@@ -67,7 +69,7 @@ app.layout = html.Div(
         dcc.Graph(id='grafica1',style={'padding': '10px 50px 20px'}),
         dcc.Graph(id='grafica2',style={'padding': '10px 50px 20px'}),
         dcc.Graph(id='grafica3',style={'padding': '10px 50px 20px'}),
-        html.H2(children='Ingrese el porcentaje para la eliminación de datos: 1-80%', 
+        html.H2(children='Ingrese el porcentaje para la eliminación de datos: 1-80%',
                 style={'color':'white', 'font-size':'25px', 'text-align':'center'}),
         #Segundo controlador
         html.Div(
@@ -101,12 +103,12 @@ app.layout = html.Div(
     Output('grafica3','figure'),
     Input('controlador1', 'value')
 )
- 
-def update_output(value):
+
+def update_output1(value):
     #Filtración de los datos por la fecha seleccionada
     rango_fecha = range(value[0], value[1] + 1)
     df = data[data['date'].dt.year.isin(rango_fecha)]
-    
+
     # Gráfico 1: Resumen por condiciones seleccionadas
     conteo_nombres = df['condition'].value_counts()
     df_1 = pd.DataFrame({'condition': conteo_nombres.index, 'value': conteo_nombres.values})
@@ -114,7 +116,7 @@ def update_output(value):
 
     # Gráfico 2: Top 3 Medicamentos Más Usados por Categoría
     #Estos sse agrupan por condicion obteniendo un conteo de las drogas utilizadas por condicion, posteriormente se seleccionan las 3 primeras de cada una
-    df_2 = df.groupby('condition')['drugName'].value_counts().groupby(level=0).nlargest(3).reset_index(level=0, drop=True) 
+    df_2 = df.groupby('condition')['drugName'].value_counts().groupby(level=0).nlargest(3).reset_index(level=0, drop=True)
     control = {'condition': [], 'drugName': [], 'count': []}
     top_drogas = []
     #De la serie obtenida como df_2, se transforma a un dataframe en un for con control
@@ -141,7 +143,7 @@ def update_output(value):
     Output('porcentaje', 'children'),
     Input('controlador2', 'value')
 )
-def update_output(value):
+def update_output2(value):
     #Obtiene un promedio de utilidad por rating
     df_4 = data.groupby('rating')['usefulCount'].mean().reset_index()
     df_4.columns = ['rating', 'usefulCount'] #Pasa la serie df_4 a ser un dataframe
@@ -165,5 +167,5 @@ def update_output(value):
     return figure4,text
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run_server(host = "0.0.0.0", port = 8050)
 
